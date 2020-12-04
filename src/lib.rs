@@ -178,16 +178,12 @@ mod day2 {
 mod day3 {
     pub struct Pos {
         x: usize,
-        y: usize
+        y: usize,
     }
 
     pub fn traverse(map: &Vec<Vec<char>>, inc: Pos) -> u32 {
         let mut total = 0;
-        let mut pos = Pos {
-            x: 0,
-            y: 0,
-        };
-        
+        let mut pos = Pos { x: 0, y: 0 };
         while pos.y < map.len() {
             if map[pos.y][pos.x % map[pos.y].len()] == '#' {
                 total += 1;
@@ -201,16 +197,16 @@ mod day3 {
     }
 
     pub fn part1(map: Vec<Vec<char>>) -> u32 {
-        traverse(&map, Pos{ x: 3, y: 1 })
+        traverse(&map, Pos { x: 3, y: 1 })
     }
 
     pub fn part2(map: Vec<Vec<char>>) -> u32 {
         let rounds = vec![
-            traverse(&map, Pos{ x: 1, y: 1 }),
-            traverse(&map, Pos{ x: 3, y: 1 }),
-            traverse(&map, Pos{ x: 5, y: 1 }),
-            traverse(&map, Pos{ x: 7, y: 1 }),
-            traverse(&map, Pos{ x: 1, y: 2 }),
+            traverse(&map, Pos { x: 1, y: 1 }),
+            traverse(&map, Pos { x: 3, y: 1 }),
+            traverse(&map, Pos { x: 5, y: 1 }),
+            traverse(&map, Pos { x: 7, y: 1 }),
+            traverse(&map, Pos { x: 1, y: 2 }),
         ];
 
         rounds.into_iter().product()
@@ -230,6 +226,218 @@ mod day3 {
         fn d3part2test() {
             let data = util::grid_from_file("./data/day3.txt");
             assert_eq!(part2(data), 2983070376);
+        }
+    }
+}
+
+#[allow(dead_code)]
+mod day4 {
+    use regex::Regex;
+    use std::collections::HashMap;
+
+    mod validator {
+        pub fn length(item: &str, target: usize) -> bool {
+            item.len() == target
+        }
+
+        pub fn between(item: usize, min: usize, max: usize) -> bool {
+            item >= min && item <= max
+        }
+
+        pub fn is_number(item: &str) -> bool {
+            match item.parse::<usize>() {
+                Ok(_) => true,
+                Err(_) => false,
+            }
+        }
+
+        pub fn parse_unit(item: &str, unit: &str) -> Result<usize, ()> {
+            if item.ends_with(unit) {
+                return Ok(item.split(unit).collect::<Vec<&str>>()[0]
+                    .parse::<usize>()
+                    .unwrap());
+            }
+            Err(())
+        }
+    }
+
+    pub fn parse_passports<'a>(raw_passports: &'a Vec<String>) -> Vec<HashMap<&'a str, &'a str>> {
+        let mut passports: Vec<HashMap<&str, &str>> = vec![];
+        let mut index = 0;
+
+        for row in raw_passports {
+            if row != "" {
+                if passports.len() == 0 || passports.len() - 1 < index {
+                    passports.push(HashMap::new());
+                }
+
+                let items: Vec<&str> = row.split(" ").collect();
+                for item in items {
+                    let data: Vec<&str> = item.split(":").collect();
+                    passports[index].insert(data[0], data[1]);
+                }
+            } else {
+                index += 1
+            }
+        }
+
+        passports
+    }
+
+    pub fn part1(data: Vec<String>) -> u32 {
+        let passports = parse_passports(&data);
+        let mut total = 0;
+        let targets = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
+
+        for passport in passports {
+            let mut missing = false;
+            for target in &targets {
+                match passport.get(target) {
+                    None => {
+                        missing = true;
+                        break;
+                    }
+                    _ => (),
+                }
+            }
+
+            if !missing {
+                total += 1;
+            }
+        }
+        total
+    }
+
+    pub fn part2(data: Vec<String>) -> u32 {
+        let targets = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
+        let passports = parse_passports(&data);
+        let mut total = 0;
+
+        for passport in passports {
+            let mut missing = false;
+            let mut error = false;
+            let mut errors = vec![];
+
+            for target in &targets {
+                match passport.get(target) {
+                    None => {
+                        missing = true;
+                        errors.push("missing");
+                        errors.push(target);
+                    }
+                    Some(value) => match target {
+                        &"byr" => {
+                            if !validator::length(value, 4)
+                                || !validator::between(value.parse::<usize>().unwrap(), 1920, 2002)
+                            {
+                                error = true;
+                                errors.push(target);
+                                errors.push(value);
+                            }
+                        }
+                        &"iyr" => {
+                            if !validator::length(value, 4)
+                                || !validator::between(value.parse::<usize>().unwrap(), 2010, 2020)
+                            {
+                                error = true;
+                                errors.push(target);
+                                errors.push(value);
+                            }
+                        }
+                        &"eyr" => {
+                            if !validator::length(value, 4)
+                                || !validator::between(value.parse::<usize>().unwrap(), 2020, 2030)
+                            {
+                                error = true;
+                                errors.push(target);
+                                errors.push(value);
+                            }
+                        }
+                        &"hgt" => {
+                            let cm = validator::parse_unit(value, "cm");
+                            let inc = validator::parse_unit(value, "in");
+
+                            println!("{} {} {}", cm.unwrap_or(0), inc.unwrap_or(0), value);
+
+                            match cm {
+                                Ok(v) => {
+                                    if !validator::between(v, 150, 193) {
+                                        error = true;
+                                        errors.push(target);
+                                        errors.push(value);
+                                    }
+                                }
+                                Err(_) => match inc {
+                                    Ok(v) => {
+                                        println!("{} {}", v, validator::between(v, 59, 76));
+                                        if !validator::between(v, 59, 76) {
+                                            error = true;
+                                            errors.push(target);
+                                            errors.push(value);
+                                        }
+                                    }
+                                    Err(_) => {
+                                        error = true;
+                                        errors.push(target);
+                                        errors.push(value);
+                                    }
+                                },
+                            }
+                        }
+                        &"hcl" => {
+                            let cap = Regex::new(r"^#[0-9a-f]{6}$").unwrap();
+
+                            if !cap.is_match(value) {
+                                error = true;
+                                errors.push(target);
+                                errors.push(value);
+                            }
+                        }
+                        &"ecl" => match value {
+                            &"amb" | &"blu" | &"brn" | &"gry" | &"grn" | &"hzl" | &"oth" => (),
+                            _ => {
+                                error = true;
+                                errors.push(target);
+                                errors.push(value);
+                            }
+                        },
+                        &"pid" => {
+                            if !validator::is_number(value) || !validator::length(value, 9) {
+                                error = true;
+                                errors.push(target);
+                                errors.push(value);
+                            }
+                        }
+                        _ => {
+                            println!("unhandled {}", value);
+                        }
+                    },
+                }
+            }
+
+            if !missing && !error {
+                total += 1;
+            } else {
+                // println!("\n\n{:#?}\n{:#?}", errors, passport);
+            }
+        }
+        total
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{super::util, *};
+
+        #[test]
+        fn d4part1test() {
+            let data = util::lines_from_file("./data/day4.txt");
+            println!("{}", part1(data));
+        }
+
+        #[test]
+        fn d4part2test() {
+            let data = util::lines_from_file("./data/day4.txt");
+            println!("{}", part2(data));
         }
     }
 }
