@@ -235,76 +235,29 @@ mod day4 {
     use regex::Regex;
     use std::collections::HashMap;
 
-    #[derive(Debug, PartialEq, Eq, Hash)]
-    pub enum Field {
-        BYR,
-        IYR,
-        EYR,
-        HGT,
-        HCL,
-        ECL,
-        PID,
-        CID,
-    }
+    type Passport = HashMap<String, String>;
 
-    pub struct Passport {
-        pub map: HashMap<Field, String>,
-    }
+    fn parseport(parseports: Vec<String>) -> Vec<Passport> {
+        let mut passports: Vec<Passport> = vec![];
+        let mut index = 0;
 
-    impl Field {
-        pub fn from(string: &str) -> Result<Field, ()> {
-            match string {
-                "byr" => Ok(Field::BYR),
-                "iyr" => Ok(Field::IYR),
-                "eyr" => Ok(Field::EYR),
-                "hgt" => Ok(Field::HGT),
-                "hcl" => Ok(Field::HCL),
-                "ecl" => Ok(Field::ECL),
-                "pid" => Ok(Field::PID),
-                "cid" => Ok(Field::CID),
-                _ => Err(()),
-            }
-        }
-    }
-
-    impl Passport {
-        pub fn new() -> Passport {
-            Passport {
-                map: HashMap::new(),
-            }
-        }
-
-        pub fn parse(parseports: Vec<String>) -> Vec<Passport> {
-            let mut passports: Vec<Passport> = vec![];
-            let mut index = 0;
-
-            for row in parseports {
-                if row != "" {
-                    if passports.len() == 0 || passports.len() - 1 < index {
-                        passports.push(Passport::new());
-                    }
-
-                    let items: Vec<&str> = row.split(" ").collect();
-                    for item in items {
-                        let data: Vec<&str> = item.split(":").collect();
-                        passports[index].add(data[0], data[1]);
-                    }
-                } else {
-                    index += 1
+        for row in parseports {
+            if row != "" {
+                if passports.len() == 0 || passports.len() - 1 < index {
+                    passports.push(HashMap::new());
                 }
+
+                let items: Vec<&str> = row.split(" ").collect();
+                for item in items {
+                    let data: Vec<&str> = item.split(":").collect();
+                    passports[index].insert(String::from(data[0]), String::from(data[1]));
+                }
+            } else {
+                index += 1
             }
-
-            passports
         }
 
-        pub fn add(&mut self, key: &str, value: &str) {
-            self.map
-                .insert(Field::from(key).unwrap(), String::from(value));
-        }
-
-        pub fn get(&self, key: &Field) -> Option<&String> {
-            self.map.get(&key)
-        }
+        passports
     }
 
     mod validator {
@@ -326,23 +279,15 @@ mod day4 {
     }
 
     pub fn part1(data: Vec<String>) -> u32 {
-        let passports = Passport::parse(data);
-        let targets = vec![
-            Field::BYR,
-            Field::IYR,
-            Field::EYR,
-            Field::HGT,
-            Field::HCL,
-            Field::ECL,
-            Field::PID,
-        ];
-
+        let passports = parseport(data);
+        let targets = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
         let mut total = 0;
+
         for passport in passports {
             let mut missing = false;
 
             for target in &targets {
-                if let None = passport.get(target) {
+                if let None = passport.get(&target.to_string()) {
                     missing = true;
                 }
             }
@@ -355,47 +300,38 @@ mod day4 {
     }
 
     pub fn part2(data: Vec<String>) -> u32 {
-        let passports = Passport::parse(data);
-        let targets = vec![
-            Field::BYR,
-            Field::IYR,
-            Field::EYR,
-            Field::HGT,
-            Field::HCL,
-            Field::ECL,
-            Field::PID,
-        ];
-
+        let passports = parseport(data);
+        let targets = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
         let mut total = 0;
 
         for passport in passports {
             let mut valid = true;
 
             for target in &targets {
-                match passport.get(target) {
+                match passport.get(&target.to_string()) {
                     None => {
                         valid = false;
                     }
-                    Some(value) => match target {
-                        Field::BYR => {
+                    Some(value) => match &target[..] {
+                        "byr" => {
                             let num_value = value.parse::<usize>().unwrap();
                             if num_value < 1920 || num_value > 2002 {
                                 valid = false;
                             }
                         }
-                        Field::IYR => {
+                        "iyr" => {
                             let num_value = value.parse::<usize>().unwrap();
                             if num_value < 2010 || num_value > 2020 {
                                 valid = false;
                             }
                         }
-                        Field::EYR => {
+                        "eyr" => {
                             let num_value = value.parse::<usize>().unwrap();
                             if num_value < 2020 || num_value > 2030 {
                                 valid = false;
                             }
                         }
-                        Field::HGT => {
+                        "hgt" => {
                             let parsed_cm = validator::parse_unit(value, "cm");
                             let parsed_inc = validator::parse_unit(value, "in");
 
@@ -411,20 +347,20 @@ mod day4 {
                                 valid = false;
                             }
                         }
-                        Field::HCL => {
+                        "hcl" => {
                             let cap = Regex::new(r"^#[0-9a-f]{6}$").unwrap();
 
                             if !cap.is_match(value) {
                                 valid = false;
                             }
                         }
-                        Field::ECL => match &value[..] {
+                        "ecl" => match &value[..] {
                             "amb" | "blu" | "brn" | "gry" | "grn" | "hzl" | "oth" => (),
                             _ => {
                                 valid = false;
                             }
                         },
-                        Field::PID => {
+                        "pid" => {
                             if !validator::is_number(value) || value.len() != 9 {
                                 valid = false
                             }
@@ -450,13 +386,13 @@ mod day4 {
         #[test]
         fn d4part1test() {
             let data = util::lines_from_file("./data/day4.txt");
-            println!("{}", part1(data));
+            assert_eq!(210, part1(data));
         }
 
         #[test]
         fn d4part2test() {
             let data = util::lines_from_file("./data/day4.txt");
-            println!("{}", part2(data));
+            assert_eq!(131, part2(data));
         }
     }
 }
