@@ -235,15 +235,79 @@ mod day4 {
     use regex::Regex;
     use std::collections::HashMap;
 
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    pub enum Field {
+        BYR,
+        IYR,
+        EYR,
+        HGT,
+        HCL,
+        ECL,
+        PID,
+        CID,
+    }
+
+    pub struct Passport {
+        pub map: HashMap<Field, String>,
+    }
+
+    impl Field {
+        pub fn from(string: &str) -> Result<Field, ()> {
+            match string {
+                "byr" => Ok(Field::BYR),
+                "iyr" => Ok(Field::IYR),
+                "eyr" => Ok(Field::EYR),
+                "hgt" => Ok(Field::HGT),
+                "hcl" => Ok(Field::HCL),
+                "ecl" => Ok(Field::ECL),
+                "pid" => Ok(Field::PID),
+                "cid" => Ok(Field::CID),
+                _ => Err(()),
+            }
+        }
+    }
+
+    impl Passport {
+        pub fn new() -> Passport {
+            Passport {
+                map: HashMap::new(),
+            }
+        }
+
+        pub fn parse(parseports: Vec<String>) -> Vec<Passport> {
+            let mut passports: Vec<Passport> = vec![];
+            let mut index = 0;
+
+            for row in parseports {
+                if row != "" {
+                    if passports.len() == 0 || passports.len() - 1 < index {
+                        passports.push(Passport::new());
+                    }
+
+                    let items: Vec<&str> = row.split(" ").collect();
+                    for item in items {
+                        let data: Vec<&str> = item.split(":").collect();
+                        passports[index].add(data[0], data[1]);
+                    }
+                } else {
+                    index += 1
+                }
+            }
+
+            passports
+        }
+
+        pub fn add(&mut self, key: &str, value: &str) {
+            self.map
+                .insert(Field::from(key).unwrap(), String::from(value));
+        }
+
+        pub fn get(&self, key: &Field) -> Option<&String> {
+            self.map.get(&key)
+        }
+    }
+
     mod validator {
-        pub fn length(item: &str, target: usize) -> bool {
-            item.len() == target
-        }
-
-        pub fn between(item: usize, min: usize, max: usize) -> bool {
-            item >= min && item <= max
-        }
-
         pub fn is_number(item: &str) -> bool {
             match item.parse::<usize>() {
                 Ok(_) => true,
@@ -261,151 +325,108 @@ mod day4 {
         }
     }
 
-    pub fn parse_passports<'a>(raw_passports: &'a Vec<String>) -> Vec<HashMap<&'a str, &'a str>> {
-        let mut passports: Vec<HashMap<&str, &str>> = vec![];
-        let mut index = 0;
-
-        for row in raw_passports {
-            if row != "" {
-                if passports.len() == 0 || passports.len() - 1 < index {
-                    passports.push(HashMap::new());
-                }
-
-                let items: Vec<&str> = row.split(" ").collect();
-                for item in items {
-                    let data: Vec<&str> = item.split(":").collect();
-                    passports[index].insert(data[0], data[1]);
-                }
-            } else {
-                index += 1
-            }
-        }
-
-        passports
-    }
-
     pub fn part1(data: Vec<String>) -> u32 {
-        let passports = parse_passports(&data);
-        let mut total = 0;
-        let targets = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
+        let passports = Passport::parse(data);
+        let targets = vec![
+            Field::BYR,
+            Field::IYR,
+            Field::EYR,
+            Field::HGT,
+            Field::HCL,
+            Field::ECL,
+            Field::PID,
+        ];
 
+        let mut total = 0;
         for passport in passports {
             let mut missing = false;
+
             for target in &targets {
-                match passport.get(target) {
-                    None => {
-                        missing = true;
-                        break;
-                    }
-                    _ => (),
+                if let None = passport.get(target) {
+                    missing = true;
                 }
             }
-
             if !missing {
                 total += 1;
             }
         }
+
         total
     }
 
     pub fn part2(data: Vec<String>) -> u32 {
-        let targets = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
-        let passports = parse_passports(&data);
+        let passports = Passport::parse(data);
+        let targets = vec![
+            Field::BYR,
+            Field::IYR,
+            Field::EYR,
+            Field::HGT,
+            Field::HCL,
+            Field::ECL,
+            Field::PID,
+        ];
+
         let mut total = 0;
 
         for passport in passports {
-            let mut missing = false;
-            let mut error = false;
-            let mut errors = vec![];
+            let mut valid = true;
 
             for target in &targets {
                 match passport.get(target) {
                     None => {
-                        missing = true;
-                        errors.push("missing");
-                        errors.push(target);
+                        valid = false;
                     }
                     Some(value) => match target {
-                        &"byr" => {
-                            if !validator::length(value, 4)
-                                || !validator::between(value.parse::<usize>().unwrap(), 1920, 2002)
-                            {
-                                error = true;
-                                errors.push(target);
-                                errors.push(value);
+                        Field::BYR => {
+                            let num_value = value.parse::<usize>().unwrap();
+                            if num_value < 1920 || num_value > 2002 {
+                                valid = false;
                             }
                         }
-                        &"iyr" => {
-                            if !validator::length(value, 4)
-                                || !validator::between(value.parse::<usize>().unwrap(), 2010, 2020)
-                            {
-                                error = true;
-                                errors.push(target);
-                                errors.push(value);
+                        Field::IYR => {
+                            let num_value = value.parse::<usize>().unwrap();
+                            if num_value < 2010 || num_value > 2020 {
+                                valid = false;
                             }
                         }
-                        &"eyr" => {
-                            if !validator::length(value, 4)
-                                || !validator::between(value.parse::<usize>().unwrap(), 2020, 2030)
-                            {
-                                error = true;
-                                errors.push(target);
-                                errors.push(value);
+                        Field::EYR => {
+                            let num_value = value.parse::<usize>().unwrap();
+                            if num_value < 2020 || num_value > 2030 {
+                                valid = false;
                             }
                         }
-                        &"hgt" => {
-                            let cm = validator::parse_unit(value, "cm");
-                            let inc = validator::parse_unit(value, "in");
+                        Field::HGT => {
+                            let parsed_cm = validator::parse_unit(value, "cm");
+                            let parsed_inc = validator::parse_unit(value, "in");
 
-                            println!("{} {} {}", cm.unwrap_or(0), inc.unwrap_or(0), value);
-
-                            match cm {
-                                Ok(v) => {
-                                    if !validator::between(v, 150, 193) {
-                                        error = true;
-                                        errors.push(target);
-                                        errors.push(value);
-                                    }
+                            if let Ok(cm) = parsed_cm {
+                                if cm < 150 || cm > 193 {
+                                    valid = false;
                                 }
-                                Err(_) => match inc {
-                                    Ok(v) => {
-                                        println!("{} {}", v, validator::between(v, 59, 76));
-                                        if !validator::between(v, 59, 76) {
-                                            error = true;
-                                            errors.push(target);
-                                            errors.push(value);
-                                        }
-                                    }
-                                    Err(_) => {
-                                        error = true;
-                                        errors.push(target);
-                                        errors.push(value);
-                                    }
-                                },
+                            } else if let Ok(inc) = parsed_inc {
+                                if inc < 59 || inc > 76 {
+                                    valid = false;
+                                }
+                            } else {
+                                valid = false;
                             }
                         }
-                        &"hcl" => {
+                        Field::HCL => {
                             let cap = Regex::new(r"^#[0-9a-f]{6}$").unwrap();
 
                             if !cap.is_match(value) {
-                                error = true;
-                                errors.push(target);
-                                errors.push(value);
+                                valid = false;
                             }
                         }
-                        &"ecl" => match value {
-                            &"amb" | &"blu" | &"brn" | &"gry" | &"grn" | &"hzl" | &"oth" => (),
+                        Field::ECL => match &value[..] {
+                            "amb" | "blu" | "brn" | "gry" | "grn" | "hzl" | "oth" => (),
                             _ => {
-                                error = true;
-                                errors.push(target);
-                                errors.push(value);
+                                valid = false;
                             }
                         },
-                        &"pid" => {
-                            if !validator::is_number(value) || !validator::length(value, 9) {
-                                error = true;
-                                errors.push(target);
-                                errors.push(value);
+                        Field::PID => {
+                            if !validator::is_number(value) || value.len() != 9 {
+                                valid = false
                             }
                         }
                         _ => {
@@ -415,10 +436,8 @@ mod day4 {
                 }
             }
 
-            if !missing && !error {
+            if valid {
                 total += 1;
-            } else {
-                // println!("\n\n{:#?}\n{:#?}", errors, passport);
             }
         }
         total
