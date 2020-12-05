@@ -398,26 +398,19 @@ mod day4 {
 }
 
 #[allow(dead_code)]
-// Probably should've done this https://en.wikipedia.org/wiki/3SUM
 mod day5 {
-    pub fn parse_instructions(characters: &[char], target: &char) -> Vec<bool> {
-        characters.into_iter().map(|i| i == target).collect()
-    }
-
-    pub fn reduce(instructions: Vec<bool>, length: usize) -> usize {
-        let mut span = length;
-        let mut location = 0;
-
-        for instruction in instructions {
-            if instruction {
-                span = span / 2;
-                location = span + location;
-            } else {
-                span = span / 2;
-            }
-        }
-
-        location
+    pub fn parse_instructions(characters: &[char], target: &char) -> String {
+        characters
+            .into_iter()
+            .map(|i| {
+                if i == target {
+                    String::from("1")
+                } else {
+                    String::from("0")
+                }
+            })
+            .collect::<Vec<String>>()
+            .join("")
     }
 
     pub fn get_seat_ids(data: Vec<Vec<char>>) -> Vec<usize> {
@@ -427,11 +420,11 @@ mod day5 {
             let row = &pass.get(0..7).unwrap();
             let col = &pass.get(7..10).unwrap();
 
-            let row_instructions = parse_instructions(&row, &'B'); // Position increases with B
-            let col_instructions = parse_instructions(&col, &'R'); // Position increases with R
+            let row_instructions = &parse_instructions(&row, &'B'); // Position increases with B
+            let col_instructions = &parse_instructions(&col, &'R'); // Position increases with R
 
-            let row_location = reduce(row_instructions, 128);
-            let col_location = reduce(col_instructions, 8);
+            let row_location = usize::from_str_radix(row_instructions, 2).unwrap();
+            let col_location = usize::from_str_radix(col_instructions, 2).unwrap();
 
             seats.push(row_location * 8 + col_location);
         }
