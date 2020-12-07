@@ -637,7 +637,6 @@ mod day7 {
             let mut total = 0;
 
             for containable in self.containment_rules.get(bag).unwrap() {
-                println!("{:#?}", containable);
                 total += containable.total;
                 total += containable.total * self.sum_containment(&containable.bag);
             }
