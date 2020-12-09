@@ -12,6 +12,7 @@ struct Line {
     operation: Operation,
     value: isize,
 }
+
 #[derive(Clone, Debug)]
 struct Program {
     lines: Vec<Line>,
